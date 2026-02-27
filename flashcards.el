@@ -154,7 +154,36 @@ Returns a list of subjects."
       (cl-pushnew subject flashcards-subject-list :test 'string=))
 
     subjects))
-  
+
+;;;###autoload
+(defun flashcards-start-review ()
+  "Start a review session for a selected subject.
+Shows random flashcards from the chosen subject."
+  (interactive)
+  (flashcards-directory-validate)
+
+  ;; Get all available subjects
+  (let ((subjects (flashcards-get-all-subjects)))
+    (if (null subjects)
+	(message "No subjects found. Create some flashcards first.")
+      (message "Available subjects: %s" (mapconcat 'identity subjects ", ")))))
+
+(defun flashcards-get-all-subjects ()
+  "Get a list of all unique subjects from all flashcards."
+  (let ((subjects '()))
+
+    (dolist (file (directory-files-recursively flashcards-directory "\\.fc$"))
+      (with-temp-buffer
+	(insert-file-contents file)
+	(when (re-search-forward "^;; subjects: \\(.+\\)$" nil t)
+	  (let ((file-subjects (split-string
+				(match-string-no-properties 1)
+				", " t)))
+	    (dolist (subject file-subjects)
+	      (cl-pushnew subject subjects :test 'string=))))))
+    subjects))
+
+
 ;;; Load other modules
 (require 'flashcards-parse)
 
