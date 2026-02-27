@@ -48,7 +48,7 @@ If it is not configured it will throw an error."
   (interactive)
   (let* ((question (read-string "Question: "))
 	 (answer (read-string "Answer: "))
-	 (subject (flashcards-subject-list))
+	 (subject (flashcards-read-subjects))
 	 (reference (flashcards-read-reference))
 	 (id (flashcards-generate-id))
 	 (filename (expand-file-name (concat id ".fc") flashcards-directory)))
@@ -93,6 +93,26 @@ Returns nul if user skips."
     (setq flashcards-index (make-hash-table :test 'equal)))
   (puthash id filename flashcards-index)
   nil)
+
+(defun flashcards-read-subjects ()
+  "Read subjects from user with completion from existing subjects.
+Returns a list of subjects."
+  (let* ((subjects-str
+	  (if flashcards-subject-list
+	      (completing-read-multiple
+	       "Subjects (comma separated): "
+	       flashcards-subject-list
+	       nil
+	       nil
+	       nil
+	       'flashcards-subjects-history)
+	    (read-string "Subjects (comma separated): ")))
+	 (subjects (split-string subjects-str ",[ \t]*" t)))
+
+    (dolist (subject subjects)
+      (cl-pushnew subject flashcards-subject-list :test 'string=))
+
+    subjects))
 
 ;;; Load other modules
 (require 'flashcards-parse)
