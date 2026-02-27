@@ -64,8 +64,38 @@ If it is not configured it will throw an error."
   "Read a org-roam reference from user.
 Returns nul if user skips."
   (when (y-or-n-p "Set reference to a node? ")
-    ;; Find nodes
-    (read-string "Reference (ID or title): ")))
+    (condition-case nil
+	(require 'org-roam)
+      (error (progn
+	       (message "org-roam not available, using manual input")
+	       (read-string "Reference (ID or title): "))))
+
+    (if (fboundp 'org-roam-node-read)
+	(let ((node (org-roam-node-read)))
+	  (when node
+	    (format "[[id:%s][%s]]"
+		    (org-roam-node-id node)
+		    (org-roam-node-title node))))
+      ;; Fallback
+      (flashcards-select-org-roam-node-simple))))
+
+
+(defun flashcards-select-org-roam-node-simple ()
+  "Select an org-roam node from a list."
+  (require 'org-roam)
+  (let* ((nodes (org-roam-node-list))
+	 (choices (mapcar (lambda (node)
+			    (cons (org-roam-node-title node)
+				  (org-roam-node-id node)))
+			  nodes)))
+    (if (null choices)
+	(progn
+	  message "No org-roam nodes found")
+      nil)
+    (let ((selected (completing-read "Select node: " choices nil t)))
+      (when selected
+	(let ((node-id (cdr (assoc selected choices))))
+	  (format "[[id:%s][%s]]" node-id selected))))))
 
 (defun flashcards-generate-id ()
   "Generate a unique ID for a flashcard."
@@ -76,15 +106,15 @@ Returns nul if user skips."
 (defun flashcards-save-flashcard (filename id question answer subject reference)
   "Save a flashcard to FILENAME with given data."
   (with-temp-file filename
-    (insert (format ";; -*- mode: flashcard -*-\n"))
+    (insert (format ";; -*- mode: org; -*-\n"))
     (insert (format ";; id: %s\n" id))
     (insert (format ";; created: %s\n" (format-time-string "%Y-%m-%d %H:%M")))
-    (insert (format ";; subjects: $s\n" (mapconcat 'identity subject ", ")))
+    (insert (format ";; subjects: %s\n" (mapconcat 'identity subject ", ")))
     (when reference
       (insert (format ";; reference: %s\n" reference)))
-    (insert "\nQuestion:\n")
+    (insert "\n*Question:\n")
     (insert question "\n\n")
-    (insert "Answer:\n")
+    (insert "*Answer:\n")
     (insert answer "\n")))
 
 (defun flashcards-update-index (id filename)
@@ -99,21 +129,32 @@ Returns nul if user skips."
 Returns a list of subjects."
   (let* ((subjects-str
 	  (if flashcards-subject-list
-	      (completing-read-multiple
-	       "Subjects (comma separated): "
-	       flashcards-subject-list
-	       nil
-	       nil
-	       nil
-	       'flashcards-subjects-history)
+	      (progn
+		(message "Existing subjects: %s"
+			 (mapconcat 'identity flashcards-subject-list ", "))
+		(sit-for 1)
+
+		(minibuffer-with-setup-hook
+		    (lambda ()
+		      (setq-local minibuffer-completion-table
+				  flashcards-subject-list)
+		      (setq-local completion-auto-help t)
+		      (minibuffer-completion-help))
+		  (completing-read-multiple
+		   "Subjects (TAB to cumplete, comma to separate, RET to confirm): "
+		   flashcards-subject-list
+		   nil nil nil 'flashcards-subjects-history)))
 	    (read-string "Subjects (comma separated): ")))
-	 (subjects (split-string subjects-str ",[ \t]*" t)))
+
+	 (subjects (if (listp subjects-str)
+		       subjects-str
+		     (split-string subjects-str ",[ \t]*" t))))
 
     (dolist (subject subjects)
       (cl-pushnew subject flashcards-subject-list :test 'string=))
 
     subjects))
-
+  
 ;;; Load other modules
 (require 'flashcards-parse)
 
