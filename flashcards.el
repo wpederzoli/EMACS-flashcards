@@ -166,7 +166,81 @@ Shows random flashcards from the chosen subject."
   (let ((subjects (flashcards-get-all-subjects)))
     (if (null subjects)
 	(message "No subjects found. Create some flashcards first.")
-      (message "Available subjects: %s" (mapconcat 'identity subjects ", ")))))
+      (flashcards-select-subjects-interactive subjects))))
+
+(defun flashcards-select-subjects-interactive (subjects)
+  "Interactive menu to select multiple subjects from SUBJECTS list."
+  (let ((selected '())
+	(remaining subjects)
+	(input "")
+	(prompt "Select subjects (numbers): "))
+
+    (while (not (string= input "RET"))
+      (flashcards-show-subjects-menu selected remaining)
+
+      (setq input (read-from-minibuffer
+		   (flashcards-build-prompt selected)
+		   nil nil nil nil))
+
+      (cond
+       ((string= input "")
+	(setq input "RET")
+	(message "Selected: %s" (mapconcat 'identity selected ", ")))
+
+       ((string-match-p "^[0-9]+$" input)
+	(let ((num (string-to-number input)))
+	  (if (and (> num 0) (<= num (length remaining)))
+	      (let ((selected-subject (nth (1- num) remaining)))
+		(setq remaining (append (cl-subseq remaining 0 (1- num))
+					(cl-subseq remaining num)))
+		(push selected-subject selected)
+		(flashcards-show-subjects-menu selected remaining))
+	    (message "Invalid number. Try again"))))
+
+       (t
+	(message "Invalid input. Enter a number or RET to finish."))))
+
+    (reverse selected)))
+
+(defun flashcards-build-prompt (selected)
+  "Build the prompt string based on SELECTED subjects."
+  (if selected
+      (format "Selected: %s\nEnter number (RET to finish): "
+	      (mapconcat 'identity selected ", "))
+    "Enter number to select subject (RET to finish): "))
+
+(defun flashcards-show-subjects-menu (selected remaining)
+  "Display the subject selection menu in a buffer.
+SELECTED is list of already chose subjects.
+REMAINING is list of subjects still available."
+  (with-current-buffer (get-buffer-create "*Subject Selection*")
+    (erase-buffer)
+    (insert "=== Subject Selection ===\n\n")
+
+    (if selected
+	(progn
+	  (insert "✅ Selected:\n")
+	  (dolist (s selected)
+	    (insert (format "  - %s\n" s)))
+	  (insert "\n"))
+      (insert "🗒️ No subjects selected yet. \n\n"))
+
+    (if remaining
+	(progn
+	  (insert "🗂️ Available subjects:\n")
+	  (dotimes (i (length remaining))
+	    (insert (format "  %d. %s\n" (1+ i) (nth i remaining))))
+	  (insert "\n"))
+      (insert "🟢 All subjects selected!\n\n"))
+
+    (insert "-----------------------------\n")
+    (insert "Type a number to add that subject\n")
+    (insert "Press RET when done\n")
+
+    (display-buffer (current-buffer)
+		    '(display-buffer-in-side-window
+		      (side . bottom)
+		      (window-height . 20)))))
 
 (defun flashcards-get-all-subjects ()
   "Get a list of all unique subjects from all flashcards."
@@ -181,7 +255,7 @@ Shows random flashcards from the chosen subject."
 				", " t)))
 	    (dolist (subject file-subjects)
 	      (cl-pushnew subject subjects :test 'string=))))))
-    subjects))
+    (sort subjects 'string<)))
 
 
 ;;; Load other modules
