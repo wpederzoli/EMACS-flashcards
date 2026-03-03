@@ -19,16 +19,20 @@
 (defun flashcards-review-show-topic-selection ()
   "Open the selection buffer for the user to choose the topics to review.
 Returns the list of selected topics."
-  (let ((selected (flashcards-show-subjects-selection-buffer)))
+  (let* ((available-subjects (flashcards-get-available-subjects))
+    (selected (flashcards-show-subjects-selection-buffer available-subjects)))
     (if selected
 	(message "You selected: %s" (mapconcat 'identity selected ", "))
       (message "No subjects selected"))
     selected))
 
-(defun flashcards-show-subjects-selection-buffer ()
-  "Prepare and show the selection buffer."
+(defun flashcards-get-available-subjects ()
+  "Get all the available subjects from the flashcard files."
+  '("math" "science" "physics"))
+
+(defun flashcards-show-subjects-selection-buffer (available-subjects)
+  "Prepare and show the selection buffer using AVAILABLE-SUBJECTS."
   (let ((selection-buffer (get-buffer-create "*Flashcards Subject Selection*"))
-	(available-subjects '("math" "science" "physics"))
 	(selected-subjects '())
 	(running t)
 	(result nil))
