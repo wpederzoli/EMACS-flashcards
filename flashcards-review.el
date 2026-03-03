@@ -3,7 +3,10 @@
 ;;; Commentary:
 ;;This module handles the review interface for flashcards.
 
-;;;Code:
+;;; Code:
+
+(eval-when-compile
+  (require 'cl-lib))
 
 ;;;###autoload
 (defun flashcards-review-start()
@@ -16,14 +19,19 @@
 (defun flashcards-review-show-topic-selection ()
   "Open the selection buffer for the user to choose the topics to review.
 Returns the list of selected topics."
-  (flashcards-show-subjects-selection-buffer))
+  (let ((selected (flashcards-show-subjects-selection-buffer)))
+    (if selected
+	(message "You selected: %s" (mapconcat 'identity selected ", "))
+      (message "No subjects selected"))
+    selected))
 
 (defun flashcards-show-subjects-selection-buffer ()
   "Prepare and show the selection buffer."
   (let ((selection-buffer (get-buffer-create "*Flashcards Subject Selection*"))
 	(available-subjects '("math" "science" "physics"))
 	(selected-subjects '())
-	(running t))
+	(running t)
+	(result nil))
 
     (while running
       (with-current-buffer selection-buffer
@@ -48,11 +56,18 @@ Returns the list of selected topics."
       (with-selected-window (get-buffer-window selection-buffer)
 	(let ((char (read-event ": ")))
 	  (cond
+	   ((eq char 'return) ;RET
+	    (setq running nil)
+	    (setq result selected-subjects)
+	    (quit-window t)
+	    (kill-buffer selection-buffer)
+	    (message "Selected: %s" (mapconcat 'identity selected-subjects ", ")))
+	
 	   ((equal char ?q)
 	    (setq running nil)
 	    (quit-window t)
 	    (kill-buffer selection-buffer)
-	    (message "Selected: %s" (mapconcat 'identity selected-subjects ", ")))
+	    (message "Selection Cancelled"))
 
 	   ((and (>= char ?1) (<= char ?9))
 	    (let ((num (- char ?0)))
@@ -71,7 +86,9 @@ Returns the list of selected topics."
 
 	   (t
 	    (message "Invalid input -press a number or 'q'")
-	    (sit-for 1))))))))
+	    (sit-for 1))))))
+    result))
+
 
 (provide 'flashcards-review)
 
