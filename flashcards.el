@@ -154,9 +154,10 @@ Returns a list of subjects."
       (cl-pushnew subject flashcards-subject-list :test 'string=))
 
     subjects))
-  
+
 ;;; Load other modules
 (require 'flashcards-parse)
+(require 'flashcards-review)
 
 (provide 'flashcards)
 
