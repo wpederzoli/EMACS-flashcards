@@ -22,13 +22,52 @@ Returns the list of selected topics."
   (let* ((available-subjects (flashcards-get-available-subjects))
     (selected (flashcards-show-subjects-selection-buffer available-subjects)))
     (if selected
-	(message "You selected: %s" (mapconcat 'identity selected ", "))
-      (message "No subjects selected"))
-    selected))
+	(let ((files (flashcards-get-flashcards-by-subject selected)))
+	  (if files
+	      (progn
+		(message "Found %d flashcards for %s"
+			 (length files)
+			 (mapconcat 'identity selected ", "))
+		files)
+	    (message "No flashcards found for selected subjects")
+	    nil))
+      (message "No subjects selected")
+      nil)))
+
+(defun flashcards-get-flashcards-by-subject (selected-subjects)
+  "Get all flashcards that contain any of the SELECTED-SUBJECTS.
+Returns a list of flashcard file paths."
+  (let ((matching-files '()))
+    (flashcards-directory-validate)
+
+    (dolist (file (directory-files-recursively flashcards-directory "\\.fc$"))
+      (with-temp-buffer
+	(insert-file-contents file)
+
+	(when (re-search-forward "^;; subjects: \\(.+\\)$" nil t)
+	  (let ((file-subjects (split-string (match-string-no-properties 1) ", " t)))
+	    (when (cl-intersection file-subjects selected-subjects :test 'string=)
+	      (push file matching-files))))))
+
+    matching-files))
 
 (defun flashcards-get-available-subjects ()
-  "Get all the available subjects from the flashcard files."
-  '("math" "science" "physics"))
+  "Get all the available subjects from the flashcard files.
+Returns a sorted list of unique subjects."
+  (let ((subjects '()))
+    (flashcards-directory-validate)
+
+    (dolist (file (directory-files-recursively flashcards-directory "\\.fc$"))
+      (with-temp-buffer
+	(insert-file-contents file)
+	(when (re-search-forward "^;; subjects: \\(.+\\)$" nil t)
+	  (let ((file-subjects (split-string
+				(match-string-no-properties 1)
+				", " t)))
+	    (dolist (subject file-subjects)
+	      (cl-pushnew subject subjects :test 'string=))))))
+
+    (sort subjects 'string<)))
 
 (defun flashcards-show-subjects-selection-buffer (available-subjects)
   "Prepare and show the selection buffer using AVAILABLE-SUBJECTS."
