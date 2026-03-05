@@ -8,6 +8,8 @@
 (eval-when-compile
   (require 'cl-lib))
 
+(require 'flashcards-display)
+
 ;;;###autoload
 (defun flashcards-review-start()
   "Start a review session."
@@ -24,11 +26,7 @@ Returns the list of selected topics."
     (if selected
 	(let ((files (flashcards-get-flashcards-by-subject selected)))
 	  (if files
-	      (progn
-		(message "Found %d flashcards for %s"
-			 (length files)
-			 (mapconcat 'identity selected ", "))
-		files)
+	     (flashcards-display-review-session files) 
 	    (message "No flashcards found for selected subjects")
 	    nil))
       (message "No subjects selected")
