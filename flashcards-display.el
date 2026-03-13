@@ -29,32 +29,32 @@ Shows each flashcard one by one in a review buffer."
         (insert-file-contents flashcard-file)
         (goto-char (point-min))
 
-        ;; Extraer subjects y pregunta/respuesta
+        ;; Get subjects, questions and answers
         (let ((subjects "unknown")
               (question "No question found")
               (answer "No answer found"))
           
-          ;; Extraer subjects
+          ;; Get subjects
           (when (re-search-forward "^;; subjects: \\(.+\\)$" nil t)
             (setq subjects (match-string-no-properties 1)))
           
           (goto-char (point-min))
-          ;; Extraer pregunta
+          ;; Get questions
           (when (re-search-forward "^\\*Question:\n\\(.+\\)$" nil t)
             (setq question (match-string-no-properties 1)))
           
           (goto-char (point-min))
-          ;; Extraer respuesta
+          ;; Get answers
           (when (re-search-forward "^\\*Answer:\n\\(.+\\)$" nil t)
             (setq answer (match-string-no-properties 1)))
 
-          ;; Mostrar progreso
+          ;; Show progress
           (erase-buffer)
           (insert (format "=== Flashcard Review (%d/%d) ===\n\n"
                          (1+ current-index) total))
           (insert (format "Subjects: %s\n\n" subjects))
           
-          ;; Mostrar pregunta o respuesta según el estado
+          ;; Show question or answer depending on state
           (if show-answer-p
               (progn
                 (insert "ANSWER:\n")
@@ -83,13 +83,13 @@ Shows each flashcard one by one in a review buffer."
 
            ((equal char ?s)
             (if show-answer-p
-                (setq show-answer-p nil)  ;; Ocultar respuesta
-              (setq show-answer-p t))     ;; Mostrar respuesta
-            ;; Redibujar el buffer sin cerrar la ventana
+                (setq show-answer-p nil)  ;; Hide answer
+              (setq show-answer-p t))     ;; Show answer
+            ;; Redraw buffer
             )
 
            ((or (equal char ?c) (equal char ?w))
-            ;; Pasar a la siguiente pregunta
+            ;; Move to next question
             (let ((next-index (1+ current-index)))
               (if (< next-index total)
                   (progn
