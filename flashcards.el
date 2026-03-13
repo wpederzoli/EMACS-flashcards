@@ -104,7 +104,7 @@ Returns nul if user skips."
 	  (substring (md5 (format "%s%s" (user-uid) (time-convert nil t))) 0 8)))
 
 (defun flashcards-save-flashcard (filename id question answer subject reference)
-  "Savea flashcard to FILENAME and ID with given data (QUESTION, ANSWER, SUBJECT and REFERENCE)."
+  "Save a flashcard to FILENAME and ID with given data (QUESTION, ANSWER, SUBJECT and REFERENCE)."
   (with-temp-file filename
     (insert (format ";; -*- mode: org; -*-\n"))
     (insert (format ";; id: %s\n" id))
