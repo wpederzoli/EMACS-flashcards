@@ -20,7 +20,7 @@ Shows each flashcard one by one in a review buffer."
         (running t)
         (flashcard-file (nth current-index flashcard-files))
         (total (length flashcard-files))
-        (show-answer-p nil))  ;; Nueva variable para controlar qué mostrar
+        (show-answer-p nil))
 
     (while running
       (with-current-buffer buffer
@@ -32,7 +32,8 @@ Shows each flashcard one by one in a review buffer."
         ;; Get subjects, questions and answers
         (let ((subjects "unknown")
               (question "No question found")
-              (answer "No answer found"))
+              (answer "No answer found")
+	      (score (flashcards-get-score flashcard-file)))
           
           ;; Get subjects
           (when (re-search-forward "^;; subjects: \\(.+\\)$" nil t)
@@ -53,6 +54,7 @@ Shows each flashcard one by one in a review buffer."
           (insert (format "=== Flashcard Review (%d/%d) ===\n\n"
                          (1+ current-index) total))
           (insert (format "Subjects: %s\n\n" subjects))
+	  (insert (format "Score: %d\n\n" score))
           
           ;; Show question or answer depending on state
           (if show-answer-p
@@ -88,8 +90,30 @@ Shows each flashcard one by one in a review buffer."
             ;; Redraw buffer
             )
 
-           ((or (equal char ?c) (equal char ?w))
-            ;; Move to next question
+	   ((equal char ?c)
+	    ;; Adds +1 to score
+	    (let ((current-score (flashcards-get-score flashcard-file)))
+	      (flashcards-update-score flashcard-file (1+ current-score))
+	      (message "Score increased to %d" (1+ current-score))
+	      (sit-for 1))
+	    ;; Move to next question
+            (let ((next-index (1+ current-index)))
+              (if (< next-index total)
+                  (progn
+                    (quit-window t)
+                    (flashcards-display-flashcard flashcard-files next-index))
+                (progn
+                  (setq running nil)
+                  (quit-window t)
+                  (kill-buffer buffer)
+                  (message "Review completed! You reviewed %d flashcards." total)))))
+
+	   ((equal char ?w)
+	    (let ((current-score (flashcards-get-score flashcard-file)))
+	      (flashcards-update-score flashcard-file (1- current-score))
+	      (message "Score decreased to %d" (1- current-score))
+	      (sit-for 1))
+	    ;; Substract -1 to score
             (let ((next-index (1+ current-index)))
               (if (< next-index total)
                   (progn
@@ -113,6 +137,29 @@ Returns the path of the randomly selected file."
          (random-file (nth random-index flashcard-files)))
     random-file))
 
+(defun flashcards-get-score (flashcard-file)
+  "Get the current score from FLASHCARD-FILE.
+Returns the score as an integer, or 0 if not found."
+  (with-temp-buffer
+    (insert-file-contents flashcard-file)
+    (goto-char (point-min))
+    (if (re-search-forward "^;; score: \\([0-9]+\\)$" nil t)
+        (string-to-number (match-string-no-properties 1))
+      0)))
+
+(defun flashcards-update-score (flashcard-file new-score)
+  "Update the score in FLASHCARD-FILE to NEW-SCORE."
+  (with-temp-buffer
+    (insert-file-contents flashcard-file)
+    (goto-char (point-min))
+    (if (re-search-forward "^;; score: [0-9]+$" nil t)
+        (replace-match (format ";; score: %d" new-score))
+      ;; If the line does not exist we add it after subjects
+      (goto-char (point-min))
+      (when (re-search-forward "^;; subjects: .+$" nil t)
+        (forward-line 1)
+        (insert (format ";; score: %d\n" new-score))))
+    (write-file flashcard-file)))
 
 (provide 'flashcards-display)
 

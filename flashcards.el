@@ -104,12 +104,13 @@ Returns nul if user skips."
 	  (substring (md5 (format "%s%s" (user-uid) (time-convert nil t))) 0 8)))
 
 (defun flashcards-save-flashcard (filename id question answer subject reference)
-  "Save a flashcard to FILENAME with given data."
+  "Savea flashcard to FILENAME and ID with given data (QUESTION, ANSWER, SUBJECT and REFERENCE)."
   (with-temp-file filename
     (insert (format ";; -*- mode: org; -*-\n"))
     (insert (format ";; id: %s\n" id))
     (insert (format ";; created: %s\n" (format-time-string "%Y-%m-%d %H:%M")))
     (insert (format ";; subjects: %s\n" (mapconcat 'identity subject ", ")))
+    (insert (format ";; score: 0\n"))
     (when reference
       (insert (format ";; reference: %s\n" reference)))
     (insert "\n*Question:\n")
@@ -118,7 +119,7 @@ Returns nul if user skips."
     (insert answer "\n")))
 
 (defun flashcards-update-index (id filename)
-  "Update the in-memory index with new flashcard."
+  "Update the in-memory index with new flashcard (ID, FILENAME)."
   (unless flashcards-index
     (setq flashcards-index (make-hash-table :test 'equal)))
   (puthash id filename flashcards-index)
