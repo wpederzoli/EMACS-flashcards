@@ -1,0 +1,78 @@
+#+TITLE: flashcards.el
+#+AUTHOR: William Pederzoli
+#+LANGUAGE: en
+#+OPTIONS: toc:2 num:nil
+
+* flashcards.el
+A simple Emacs package to create and review flashcards directly from your org files. I built this to help myself practice spaced repetition while staying inside Emacs, without leaving my org-mode workflow.
+
+* Features
+- Create flashcards interactively from anywhere in Emacs
+- Organize flashcards by subjects/topics
+- Select multiple subjects to review
+- Simple scoring system (correct/incorrect)
+- Clean interface using a bottom window
+- Integrates with org-roam (optional)
+
+* Installation
+
+** Requirements
+- Emacs (tested on 27.1 or higher) 
+- Optional: org-roam for node references
+
+** Setup
+For now, clone the repo and Add this to your ~init.el~:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "/path/to/flashcards/")
+(require 'flashcards)
+(require 'flashcards-review)
+(require 'flashcards-display)
+
+;; Set your flashcards directory
+(setq flashcards-directory "~/flashcards/")
+#+END_SRC
+
+* Usage
+
+** Creating a flashcard
+1. Run ~M-x flashcards-create-new~
+2. Enter the question
+3. Enter the answer
+4. Enter subjects (comma separated)
+5. Optionally add a reference to an org-roam node
+
+** Reviewing flashcards
+1. Run ~M-x flashcards-review-start~
+2. Select subjects to review (type numbers to choose, RET to confirm)
+3. In the review window:
+   - ~s~: Toggle answer
+   - ~c~: Mark as correct (+1 point)
+   - ~w~: Mark as wrong (-1 point)
+   - ~q~: Quit
+
+* Flashcard file format
+Flashcards are stored as ~.fc~ files in your configured directory:
+
+#+BEGIN_SRC org
+;; -*- mode: org; -*-
+;; id: fc-20250313-a1b2c3d4
+;; created: 2025-03-13 10:30
+;; subjects: emacs, lisp
+;; score: 0
+
+*Question:
+How do I install this package?
+
+*Answer:
+Just clone and follow the instructions
+#+END_SRC
+
+* Why I built this
+I take notes with org-mode and org-roam, and I wanted a simple way to turn those notes into flashcards for spaced repetition. This package is my attempt to keep everything inside Emacs, simple and hackable.
+
+* Contributing
+This is a personal project, but feel free to fork it and adapt it to your needs. If you find bugs or have ideas, open an issue or send a pull request.
+
+* License
+GPL v3
